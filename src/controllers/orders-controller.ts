@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express"
 import { AppError } from "@/utils/AppError"
 import { knex } from "@/database/knex"
 import { z } from "zod"
+import { table } from "console"
 
 class OrdersController {
   async create(request: Request, response: Response, next: NextFunction) {
@@ -70,6 +71,24 @@ class OrdersController {
         .join("products", "products.id", "orders.product_id")
         .where({ table_session_id })
         .orderBy("orders.created_at", "desc")
+
+      return response.json(order)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async show(request: Request, response: Response, next: NextFunction) {
+    try {
+      const { table_session_id } = request.params
+
+      const order = await knex("orders")
+        .select(
+          knex.raw("COALESCE(SUM(orders.price * orders.quantity), 0) AS total"),
+          knex.raw("COALESCE(SUM(orders.quantity), 0) AS quantity")
+        )
+        .where({ table_session_id })
+        .first()
 
       return response.json(order)
     } catch (error) {
